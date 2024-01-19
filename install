@@ -12,7 +12,7 @@ HTML_DIR="$TRACEV_DIR/templates"
 TARGET_HTML_PATH="$HTML_DIR/index.html"
 
 mkdir -p "$HTML_DIR"
-curl -# -L "$TARGET_HTML_PATH" -o "$HTML_URL"
+curl -# -L "$HTML_URL" -o "$TARGET_HTML_PATH"
 
 BIN_URL="https://github.com/zach030/tracev/releases/download/v0.0.1/trace_viewer"
 BIN_PATH="$TRACEV_BIN_DIR/tracev"
