@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trace Viewer</title>
+    <style>
+        body {
+            font-family: 'Monaco', monospace;
+            color: #abb2bf;
+            padding: 20px;
+            margin: 0;
+        }
+        #trace-container {
+            width: 100%;
+        }
+        .trace-line {
+            white-space: pre-wrap; /* Allows text to wrap within the container */
+            position: relative;
+            padding-left: 20px;
+            cursor: pointer;
+        }
+        .foldable {
+            cursor: pointer;
+        }
+        .foldable::before {
+            content: '-';
+            color: #d19a66;
+        }
+        .folded::before {
+            content: '+';
+            color: #d19a66;
+        }
+        .function {
+            color: #0e8e3f;
+        }
+        .event {
+            color: #25b9cd;
+        }
+        .keyword {
+            color: #d19a66;
+        }
+        .default-color {
+            color: #333333; 
+        }
+    </style>
+</head>
+<body>
+    <div id="trace-container"></div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const traceContainer = document.getElementById('trace-container');
+            traceContainer.innerHTML = parseTrace(`{{ trace_text | safe }}`);
+
+            traceContainer.addEventListener('click', function(event) {
+                if (event.target.classList.contains('foldable')) {
+                    toggleFold(event.target);
+                }
+            });
+        });
+
+        function parseTrace(traceText) {
+            const lines = traceText.split('\n');
+            return lines.map((line, index) => {
+                const indentSize = getIndentSize(line);
+                const level = getIndentLevel(line);
+                const isFoldable = index < lines.length - 1 && getIndentLevel(lines[index + 1]) > level;
+                console.log("%s %d", line, level);
+                let formattedLine = formatLine(line);
+                return `<div class="${isFoldable ? 'foldable' : ''} trace-line" style="margin-left: ${isFoldable ? (indentSize/2-1):indentSize/2}ch;">${formattedLine}</div>`;            }).join('');
+        }
+        
+        function getIndentSize(line) {
+            const index = line.indexOf('├─');
+            if (index !== -1) return index;
+            return line.indexOf('└─') !== -1 ? line.indexOf('└─') : 0;
+        }
+        function getIndentLevel(line) {
+            return getIndentSize(line)/4;
+        }
+
+        function formatLine(line) {
+            line = `<span class="default-color">${line}</span>`;
+            line = line.replace(/(\w+::\w+)(\([^)]*\))/g, (match, p1, p2) => `<span class="function">${p1}</span>${p2}`);
+            
+            line = line.replace(/emit (\w+)/g, (match, p1) => `emit <span class="event">${p1}</span>`);
+
+            line = line.replace(/\[(delegatecall|staticcall)\]/g, (match) => `<span class="keyword">${match}</span>`);
+            return line;
+        }
+
+
+        function toggleFold(element) {
+            let isFolded = element.classList.contains('folded');
+            let indentLevel = (element.textContent.match(/│/g) || []).length;
+            let nextElement = element.nextElementSibling;
+            
+            while (nextElement) {
+                let nextIndentLevel = (nextElement.textContent.match(/│/g) || []).length;
+                if (nextIndentLevel <= indentLevel) break;
+                
+                nextElement.style.display = isFolded ? 'block' : 'none';
+                
+                // If the current element is being unfolded, ensure its children are only visible if they are not folded themselves
+                if (!isFolded && nextElement.classList.contains('folded')) {
+                    skipNestedFolded(nextElement, nextIndentLevel);
+                }
+
+                nextElement = nextElement.nextElementSibling;
+            }
+
+            element.classList.toggle('folded');
+        }
+
+        function skipNestedFolded(element, indentLevel) {
+            let nextElement = element.nextElementSibling;
+            while (nextElement) {
+                let nextIndentLevel = (nextElement.textContent.match(/│/g) || []).length;
+                if (nextIndentLevel <= indentLevel) break;
+                nextElement.style.display = 'none';
+                nextElement = nextElement.nextElementSibling;
+            }
+        }
+    </script>
+</body>
+</html>
